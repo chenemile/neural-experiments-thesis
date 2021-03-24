@@ -259,6 +259,8 @@ def write_out_to_json(word2analyses, jsonfile):
 
 def main():
 
+    #TODO: change hard-coded files paths to input and output parameters
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--proposed_analyses', help='file path to proposed analyses for unanalyzed words')
     args = parser.parse_args()
@@ -275,7 +277,7 @@ def main():
         print("converting error analysis to cg format...")
     
         unformatted = args.proposed_analyses 
-        formatted   = "/home/chenemile/thesis-work/make-dataset/unanalyzed.output"
+        formatted   = "/home/echen41/neural-experiments-thesis/make-dataset/unanalyzed.output"
     
         with open(unformatted, 'r') as input_file:
             lines = input_file.readlines()
@@ -289,13 +291,13 @@ def main():
         #     either from the analyzer or from me
         print("replacing +? with proposed analyses...")
     
-        analyzed = "/home/chenemile/thesis-work/make-dataset/stories.output"
-        unanalyzed = "/home/chenemile/thesis-work/make-dataset/unanalyzed.output"
+        analyzed = "/home/echen41/neural-experiments-thesis/make-dataset/stories.output"
+        unanalyzed = "/home/echen41/neural-experiments-thesis/make-dataset/unanalyzed.output"
         word_and_analyses = fill_in_unanalyzed(analyzed, unanalyzed)
     else:
         print("converting cg output to dict format...")
 
-        analyzed = "/home/chenemile/thesis-work/make-dataset/stories.output"
+        analyzed = "/home/echen41/neural-experiments-thesis/make-dataset/stories.output"
         unanalyzed = ""
         word_and_analyses = fill_in_unanalyzed(analyzed, unanalyzed)
 
@@ -303,7 +305,7 @@ def main():
     # (2) write 'one2one_word_analysis' out to json format
     print("writing out json file...")
 
-    jsonfile = "/home/chenemile/thesis-work/make-dataset/word2analyses.json"
+    jsonfile = "/home/echen41/neural-experiments-thesis/make-dataset/word2analyses.json"
     write_out_to_json(word_and_analyses, jsonfile)
 
 

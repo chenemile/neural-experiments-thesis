@@ -21,8 +21,8 @@ def main():
     parser.add_argument('include_zero_derivations',  help='OPTIONS: include_zero, exclude_zero')
     args = parser.parse_args()
 
-    jsonfile   = "/home/chenemile/thesis-work/make-dataset/word2analyses.json"
-    outputfile = "/home/chenemile/thesis-work/make-dataset/underlying.txt"
+    jsonfile   = "/home/echen41/neural-experiments-thesis/make-dataset/word2analyses.json"
+    outputfile = "/home/echen41/neural-experiments-thesis/make-dataset/underlying.txt"
 
     num_samples     = int(args.num_samples)
     sampling_method = args.sampling_method

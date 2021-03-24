@@ -4,7 +4,7 @@
 #   * validation set
 #   * test set
 #--------------------------
-f="/home/chenemile/thesis-work/make-dataset/data.txt"
+f="/home/echen41/neural-experiments-thesis/make-dataset/data.txt"
 
 rm -rf data
 mkdir data

@@ -7,9 +7,9 @@
 dirname=""
 
 if [ $1 == "devset" ]; then
-    dirname="/home/chenemile/thesis-work/make-dataset/devset-files"
+    dirname="/home/echen41/neural-experiments-thesis/make-dataset/devset-files"
 elif [ $1 == "dataset" ]; then
-    dirname="/home/chenemile/thesis-work/make-dataset/data"
+    dirname="/home/echen41/neural-experiments-thesis/make-dataset/data"
 fi
 
 for f in $dirname/*.tsv; do
