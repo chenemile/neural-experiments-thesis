@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ducttape folders
+analyzer/ digital_corpus/ download_cg/ flookup/ get_foma_py/ make_train_data/ make_word2analyses/ run_cg/
+
+# neural analyzer folders
+run-models/1mil-pilot-exp/ 3mil-all-variations/ run-models/*out

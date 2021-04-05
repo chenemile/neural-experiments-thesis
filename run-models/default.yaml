@@ -1,0 +1,37 @@
+# toy_en_de.yaml
+
+# where the samples will be written
+save_data: 3mil-all-variations/condfrac-3A-3mil/run
+## Where the vocab(s) will be written
+src_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.src
+tgt_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.tgt
+# prevent overwriting existing files
+overwrite: False
+
+# corpus opts:
+data:
+    corpus_1:
+        path_src: 3mil-all-variations/condfrac-3A-3mil/data/src-train.txt
+        path_tgt: 3mil-all-variations/condfrac-3A-3mil/data/tgt-train.txt
+    valid:
+        path_src: 3mil-all-variations/condfrac-3A-3mil/data/src-val.txt
+        path_tgt: 3mil-all-variations/condfrac-3A-3mil/data/tgt-val.txt
+
+# vocabulary files that were just created
+src_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.src
+tgt_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.tgt
+
+# GPUs 
+world_size: 7
+gpu_ranks: [0,1,2,3,4,5,6]
+
+# hyperparams
+encoder_type: brnn
+early_stopping: 5
+
+# where to save the checkpoints
+save_model: 3mil-all-variations/condfrac-3A-3mil/run/model
+#save_checkpoint_steps: 500
+#train_steps: 1000
+#valid_steps: 10000
+keep_checkpoint: 1
