@@ -66,7 +66,7 @@ def main():
     parser.add_argument('surface', help='file to contain surface forms')
     args = parser.parse_args()
 
-    t = FST.load("/home/chenemile/thesis-work/make-dataset/neural_lowercase.fomabin")
+    t = FST.load("/home/echen41/neural-experiments-thesis/make-dataset/neural_lowercase.fomabin")
 
     inputfile  = args.underlying
     outputfile = args.surface 

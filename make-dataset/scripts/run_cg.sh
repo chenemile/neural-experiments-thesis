@@ -1,8 +1,8 @@
 #!/bin/bash
 
-master_dir="/home/chenemile/thesis-work/make-dataset/"
+master_dir="/home/echen41/neural-experiments-thesis/make-dataset/"
 
-output_dir="/home/chenemile/thesis-work/make-dataset/cg3-output"
+output_dir="/home/echen41/neural-experiments-thesis/make-dataset/cg3-output"
 if [ ! -d ${output_dir} ]; then
     mkdir ${output_dir}
 fi
@@ -11,7 +11,7 @@ fi
 # to generate dev set
 #---------------------
 if [ $1 == "devset" ]; then
-    folder="/home/chenemile/thesis-work/make-dataset/devset-files/texts/*"
+    folder="/home/echen41/neural-experiments-thesis/make-dataset/devset-files/texts/*"
 
     for text in ${folder}; do
         base=$(basename ${text} .ess_content)
@@ -29,7 +29,7 @@ if [ $1 == "devset" ]; then
 # to generate training sets 
 #---------------------------
 elif [ $1 == "dataset" ]; then
-    texts="/home/chenemile/digital_corpus/ess/*"
+    texts="/home/echen41/digital_corpus/ess/*"
 
     for folder in ${texts}; do
         for text in ${folder}/ess_content/*; do

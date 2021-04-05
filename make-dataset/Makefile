@@ -8,7 +8,7 @@ word2analyses.json:
 
 all-steps: word2analyses.json
 	python3 scripts/make_underlying.py shortest 1A 3250000 exclude_zero
-	python2.7 scripts/make_surface.py /home/chenemile/thesis-work/make-dataset/underlying.txt /home/chenemile/thesis-work/make-dataset/surface.txt
+	python2.7 scripts/make_surface.py /home/echen41/neural-experiments-thesis/make-dataset/underlying.txt /home/echen41/neural-experiments-thesis/make-dataset/surface.txt
 	shuf -n 3000000 surface.txt > data.txt
 	bash scripts/partition_data.sh
 	bash scripts/tokenize_char.sh dataset
@@ -17,9 +17,13 @@ all-steps: word2analyses.json
 
 # makes 'src-train.txt', 'src-val.txt', 'src-test.txt' and
 # 'tgt-train.txt', 'tgt-val.txt', 'tgt-test.txt' using the specified parameters 
+
+# GetCounts: random, mixed, shortest, uniform-frac, conditional-frac
+# SamplingMethod: 1A, 2A, 2B, 3A
+# NumSamples: 1mil=1000000 3mil=3000000
 dataset:
-	python3 scripts/make_underlying.py random 1A 3000000 exclude_zero
-	python2.7 scripts/make_surface.py /home/chenemile/thesis-work/make-dataset/underlying.txt /home/chenemile/thesis-work/make-dataset/surface.txt
+	python3 scripts/make_underlying.py [mixed 2A 3000000] exclude_zero
+	python2.7 scripts/make_surface.py /home/echen41/neural-experiments-thesis/make-dataset/underlying.txt /home/echen41/neural-experiments-thesis/make-dataset/surface.txt
 	shuf -n 3000000 surface.txt > data.txt
 	bash scripts/partition_data.sh
 	bash scripts/tokenize_char.sh dataset
@@ -33,7 +37,7 @@ clean-dataset:
 # optionally includes proposed analyses for all of the unanalyzed words in those texts
 devset:
 	#python3 scripts/make_devset.py
-	python3 scripts/make_devset.py --proposed_analyses /home/chenemile/thesis-work/make-dataset/devset-files/unanalyzed.tsv
+	python3 scripts/make_devset.py --proposed_analyses /home/echen41/neural-experiments-thesis/make-dataset/devset-files/unanalyzed.tsv
 	bash scripts/tokenize_char.sh devset
 	rm *.output devset-files/unanalyzed.underlying devset-files/unanalyzed.surface devset-files/devset.tsv
 

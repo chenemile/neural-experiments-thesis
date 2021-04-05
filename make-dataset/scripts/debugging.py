@@ -5,7 +5,7 @@ from sampling_methods import *
 
 
 def main():
-    jsonfile   = "/home/chenemile/thesis-work/make-dataset/word2analyses.json"
+    jsonfile   = "/home/echen41/neural-experiments-thesis/make-dataset/word2analyses.json"
 
     with open(jsonfile) as f:
         word2analyses = json.load(f)

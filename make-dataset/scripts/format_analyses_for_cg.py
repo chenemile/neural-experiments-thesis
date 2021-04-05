@@ -63,7 +63,7 @@ if __name__ == '__main__':
             if line:
                 reformat_analyses(line)
     else:
-        filename = "/home/chenemile/thesis-work/make-dataset/stories.analyses"
+        filename = "/home/echen41/neural-experiments-thesis/make-dataset/stories.analyses"
 
         with open(filename, 'r') as f:
             for line in f:

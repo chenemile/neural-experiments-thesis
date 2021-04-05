@@ -195,7 +195,7 @@ def main():
         print("converting error analysis to cg format...")
     
         unformatted = args.proposed_analyses
-        formatted   = "/home/chenemile/thesis-work/make-dataset/unanalyzed.output"
+        formatted   = "/home/echen41/neural-experiments-thesis/make-dataset/unanalyzed.output"
     
         with open(unformatted, 'r') as input_file:
             lines = input_file.readlines()
@@ -209,19 +209,19 @@ def main():
         #     either from the analyzer or from me
         print("replacing +? with proposed analyses...")
     
-        analyzed = "/home/chenemile/thesis-work/make-dataset/stories.output"
-        unanalyzed = "/home/chenemile/thesis-work/make-dataset/unanalyzed.output"
+        analyzed = "/home/echen41/neural-experiments-thesis/make-dataset/stories.output"
+        unanalyzed = "/home/echen41/neural-experiments-thesis/make-dataset/unanalyzed.output"
         word_and_analyses = fill_in_unanalyzed(analyzed, unanalyzed)
     else:
         print("converting cg output to dict format...")
 
-        analyzed = "/home/chenemile/thesis-work/make-dataset/stories.output"
+        analyzed = "/home/echen41/neural-experiments-thesis/make-dataset/stories.output"
         unanalyzed = ""
         word_and_analyses = fill_in_unanalyzed(analyzed, unanalyzed)
 
 
     # (2) write out 'word_and_analyses' to 'devset-files/devset.tsv
-    devset = "/home/chenemile/thesis-work/make-dataset/devset-files/devset.tsv"
+    devset = "/home/echen41/neural-experiments-thesis/make-dataset/devset.tsv"
 
     with open(devset, 'w') as f: 
         for tup in word_and_analyses:

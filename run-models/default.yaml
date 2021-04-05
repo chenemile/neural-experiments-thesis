@@ -1,8 +1,8 @@
-# toy_en_de.yaml
+# neural experiments yaml
 
 # where the samples will be written
 save_data: 3mil-all-variations/condfrac-3A-3mil/run
-## Where the vocab(s) will be written
+# where the vocab(s) will be written
 src_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.src
 tgt_vocab: 3mil-all-variations/condfrac-3A-3mil/run/vocab.tgt
 # prevent overwriting existing files
