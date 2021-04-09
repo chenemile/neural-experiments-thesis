@@ -40,17 +40,6 @@ task analyzer
 	for f in *.fomabin ; do mv ${f} ../${f%.fomabin} ; done
 }
 
-task download_cg
-	:: url="git@github.com:hayleypark/yupik_constraint_grammar.git"
-	:: tag=(CG: "0.0.1")
-	> script="repo/scripts/preprocess_analyses.py"
-	> cg="repo/yupik.cg3"
-{
-	git clone --depth 1                    \
-	  		  --single-branch              \
-			  -c advice.detachedHead=false \
-			  --branch ${tag} ${url} repo
-}
 
 task flookup
 	< analyzer=$uppercase@analyzer 
@@ -61,9 +50,9 @@ task flookup
 }
 
 task run_cg
-	< format_for_cg=$script@download_cg
+	< format_for_cg=$preprocess_analyses@scripts
 	< analyses=$out@flookup
-	< cg=$cg@download_cg
+	< cg=$cg@scripts
 	> formatted
 	> out
 {
@@ -71,60 +60,81 @@ task run_cg
 	cat ${formatted} | vislcg3 --grammar ${cg} > ${out} 
 }
 
-task get_foma_py
-	:: foma_py="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
-	> out
-{
-    wget ${foma_py} > ${out}
-}
 
-task make_word2analyses
-	< cg=$out@run_cg
-	< script="scripts/make_word2analyses_json.py"
-	> out
+task scripts
+	:: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
+    :: emily_url="git@github.com:chenemile/neurexp-make-dataset-scripts.git"
+    :: emily_tag=(SCRIPTS: "0.0.1")
+    :: hayley_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
+    :: hayley_tag=(CG: "0.0.1")
+     > foma_py="foma.py"
+     > count_methods="count_methods.py"
+     > make_surface="make_surface.py"
+     > make_underlying="make_underlying.py"
+     > make_word2analyses="make_word2analyses_json.py"
+     > partition_data="partition_data.sh"
+     > sampling_methods="sampling_methods.py"
+     > tokenize_char="tokenize_char.sh"
+     > preprocess_analyses="preprocess_analyses.py"
+     > cg=yupik.cg3
 {
-	python3 ${script} --cg_output=${cg} --FLAG=${out}
+	git clone --depth 1                    \
+	  		  --single-branch              \
+			  -c advice.detachedHead=false \
+			  --branch ${emily_tag} ${emily_url} emily_scripts
+
+	git clone --depth 1                    \
+	  		  --single-branch              \
+			  -c advice.detachedHead=false \
+			  --branch ${hayley_tag} ${hayley_url} hayley_scripts
+
+	wget ${foma_url}
+
+	mv emily_scripts/* .
+	mv hayley_scripts/scripts/* .
+	mv hayley_scripts/yupik.cg3 .
 }
 	
+task make_word2analyses
+    < script=$make_word2analyses@scripts
+    < cg=$out@run_cg
+    > out
+{
+	python3 ${script} --cg_output=${cg} --json_name=${out}
+}
+
 task make_train_data
-	< make_underlying="scripts/make_underlying.py"
-	< make_surface="scripts/make_surface.py"
-	< foma_py=$out@get_foma_py
+	< make_underlying=@scripts
+	< make_surface=@scripts
+	< foma_py=@scripts
 	< word2analyses=$out@make_word2analyses
 	< analyzer=$lowercase@analyzer
-	> underlying
-	> surface 
-	> data
-	> train
-    > val
-	> test	
-	> src_train
-	> src_val
-	> src_test
-	> tgt_train
-	> tgt_val
-	> tgt_test
+	< partition_data=@scripts
+	< tokenize_char=@scripts
+	> underlying="underlying.txt"
+	> surface="surface.txt"
+	> data="data.txt"
 	:: count_method=(GetCounts: "random" "mixed" "shortest" "uniform_frac" "conditional_frac")
 	:: sampling_method=(SampleMethod: "1A" "2A" "2B" "3A")
 	:: size=(NumSamples: 1mil=1000000 3mil=3000000)
 {
-	ln -s ${foma_py} foma.py
+	python3 ${make_underlying} --json=${word2analyses} --count_method=${count_method} --sampling_method=${sampling_method} --num_samples=${size} --output=${underlying}
 
-	python3 --json=${word2analyses} --count_method=${count_method} --sampling_method=${sampling_method} --num_samples=${size} > ${underlying}
-
-	python3 --underlying=${underlying} --analyzer=${analyzer} ${make_surface} > ${surface}
+	python2.7 ${make_surface} --underlying=${underlying} --surface=${surface} --analyzer=${analyzer}
 
 	shuf -n ${size} ${surface} > ${data}
 
-	rm -rf data
-	mkdir data
+    ${partition_data} ${data}
 
-    bash scripts/partition_data.sh ${data} data/${train} data/${val} data/${test}
+	mkdir dataset
+	mv train.tsv val.tsv testset.tsv dataset
 
-	bash scripts/tokenize_char.sh data ${src_train} ${tgt_train} ${src_val} ${tgt_val} ${src_test} ${tgt_test}
+	${tokenize_char} dataset
+
+	rm dataset/train.tsv dataset/val.tsv dataset/testset.tsv
 }
 
-#plan random_1A_3mil
-#{
-#	reach make_train_data via (GetCounts: "random") * (SampleMethod: "1A") * (NumSamples: 3mil)
-#}
+plan random_1A_3mil 
+{
+	reach make_train_data via (GetCounts: "random") * (SampleMethod: "1A") * (NumSamples: 1mil)
+}
