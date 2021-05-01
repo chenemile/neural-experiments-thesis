@@ -23,33 +23,38 @@ task digital_corpus
     wc ${titles} ${sentences} > ${stats}
 }
 
+
 task analyzer
     :: url="git@github.com:SaintLawrenceIslandYupik/finite_state_morphology.git"
     :: tag=(Analyzer: "2.4")
     > lowercase
     > uppercase
-    > l2is
+    > full_l2is
 {
     git clone --depth 1                    \
               --single-branch              \
               -c advice.detachedHead=false \
               --branch ${tag} ${url} repo
 
-    cd repo && make lowercase.fomabin && make uppercase.fomabin && make l2is.fomabin
+    cd repo && make lowercase.fomabin && make uppercase.fomabin && make full_l2is.fomabin
 
     for f in *.fomabin ; do mv ${f} ../${f%.fomabin} ; done
 }
 
-task parser 
-    :: url="git@github.com:dowobeha/yupik-parser.git"
-    :: tag=(Parser: "1.3.19")
-    > parser 
+
+task parser
+     :: url="git@github.com:dowobeha/yupik-parser.git"
+     :: tag=(Qamani: "1.3.19")
+     > itemquulteki
 {
-    git clone --depth 1                    \
-              --single-branch              \
+    git clone --depth 1                \
+              --single-branch          \
               -c advice.detachedHead=false \
               --branch ${tag} ${url} repo
+
+    cd repo && swift build && mv .build/debug/itemquulteki ..
 }
+
 
 task flookup
     < analyzer=$uppercase@analyzer 
@@ -58,6 +63,7 @@ task flookup
 {
     cat ${text} | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} > $out 
 }
+
 
 task run_cg
     < format_for_cg=$preprocess_analyses@scripts
@@ -86,6 +92,7 @@ task scripts
      > sampling_methods="sampling_methods.py"
      > tokenize_char="tokenize_char.sh"
      > get_wer="get_word_error_rate.py"
+     > fst_on_devtest="get_fst_on_devtest_results.py"
      > src_devtest="devtest/src-dev.txt"
      > tgt_devtest="devtest/tgt-dev.txt"
      > preprocess_analyses="preprocess_analyses.py"
@@ -108,6 +115,7 @@ task scripts
     mv cg_scripts/yupik.cg3 .
 }
     
+
 task word2analyses
     < script=$word2analyses@scripts
     < cg=$out@run_cg
@@ -115,6 +123,7 @@ task word2analyses
 {
     python3 ${script} --cg_output=${cg} --json_name=${out}
 }
+
 
 task training_data
     < make_underlying=@scripts
@@ -152,6 +161,7 @@ task training_data
 }
 
 # TODO: task that creates the virtual env and populates it (OpenNMT, PyTorch)
+
 
 task yaml
     < src_train=@training_data
@@ -215,6 +225,7 @@ global {
 cuda_devices="1,2,3,4,5,6,7"
 }
 
+
 task train_model
 #    < activate="/home/echen41/venv/bin/activate"
     < yaml=@yaml
@@ -244,6 +255,7 @@ task train_model
     ln -s run/model* ${model}
 }
 
+
 task devtest_predictions
     < model=@train_model
     < src_devtest=@scripts
@@ -252,26 +264,43 @@ task devtest_predictions
     onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose
 }
 
+
 task accuracy
     < script=$get_wer@scripts
     < analyzer=$uppercase@analyzer 
     < src_devtest=@scripts
     < tgt_devtest=@scripts
-    < predictions=@devset_predictions
+    < predictions=@devtest_predictions
     > output="accuracy.txt"
 {
-    python2.7 $script} ${analyzer} ${src_devtest} ${tgt_devtest} ${predictions} > ${output}
+    python2.7 ${script} ${analyzer} ${src_devtest} ${tgt_devtest} ${predictions} > ${output}
 }
 
+
 task fst_devtest
-    < analyzer=$uppercase@analyzer
+    < itemquulteki=@parser
+    < l2s=$uppercase@analyzer
+    < l2is=$full_l2is@analyzer
+    < src_devtest=@scripts 
+    < tgt_devtest=@scripts 
     < script=$fst_on_devtest@scripts
     > output="results.txt"
 {
-    python2.7 ${script} ${analyzer} ${devtest} > ${output}
+    cat ${src_devtest} | tr -d "[:space:]" > sentences
+    cat ${tgt_devtest} | tr -d "[:space:]" > gold
+
+    ${itemquulteki} --l2s=${l2s} --l2is=${l2is} --sentences=${sentences} --mode=all > ${parser_output}
+
+    python3 ${script} ${parser_output} ${gold} > ${output}
 }
 
-plan random_1A_3mil 
+
+#plan random_1A_3mil 
+#{
+#    reach train_model via (GetCounts: "random") * (SampleMethod: "1A") * (NumSamples: 10)
+#}
+
+plan fst_devtest_results 
 {
-    reach train_model via (GetCounts: "random") * (SampleMethod: "1A") * (NumSamples: 10)
+    reach fst_devtest
 }
