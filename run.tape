@@ -26,10 +26,11 @@ task digital_corpus
 
 task analyzer
     :: url="git@github.com:SaintLawrenceIslandYupik/finite_state_morphology.git"
-    :: tag=(Analyzer: "2.4")
+    :: tag=(Analyzer: "2.6")
     > lowercase
     > uppercase
     > full_l2is
+    > lexc="repo/ess.lexc"
 {
     git clone --depth 1                    \
               --single-branch              \
@@ -80,11 +81,12 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.1")
+    :: neurexp_scripts_tag=(Scripts: "0.0.2")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
      > count_methods="count_methods.py"
+     > memorize_these="memorize_these.sh"
      > make_surface="make_surface.py"
      > make_underlying="make_underlying.py"
      > word2analyses="make_word2analyses_json.py"
@@ -96,12 +98,12 @@ task scripts
      > src_devtest="devtest/src-dev.txt"
      > tgt_devtest="devtest/tgt-dev.txt"
      > preprocess_analyses="preprocess_analyses.py"
-     > cg=yupik.cg3
+     > cg="yupik.cg3"
 {
     git clone --depth 1                    \
                 --single-branch              \
               -c advice.detachedHead=false \
-              --branch ${neurexp_tag} ${neurexp_scripts_url} neurexp_scripts
+              --branch ${neurexp_scripts_tag} ${neurexp_scripts_url} neurexp_scripts
 
     git clone --depth 1                    \
                 --single-branch              \
@@ -131,9 +133,12 @@ task training_data
     < foma_py=@scripts
     < word2analyses=$out@word2analyses
     < analyzer=$lowercase@analyzer
+    < lexc=@analyzer
+    < memorize_these=@scripts
     < partition_data=@scripts
     < tokenize_char=@scripts
     > underlying="underlying.txt"
+    > memorize="memorize.txt"
     > surface="surface.txt"
     > data="data.txt"
     > src_train="data/src-train.txt"
@@ -142,13 +147,17 @@ task training_data
     > tgt_val="data/tgt-val.txt"
     :: count_method=(GetCounts: "random" "mixed" "shortest" "uniform_frac" "conditional_frac")
     :: sampling_method=(SampleMethod: "1A" "2A" "2B" "3A")
-    :: size=(NumSamples: 1mil=1000000 3mil=3000000)
+    :: size=(NumSamples: 1mil=1000000 3mil=3000000 5mil=5000000)
 {
     python3 ${make_underlying} --json=${word2analyses} --count_method=${count_method} --sampling_method=${sampling_method} --num_samples=${size} --output=${underlying}
 
     python2.7 ${make_surface} --underlying=${underlying} --surface=${surface} --analyzer=${analyzer}
 
-    shuf -n ${size} ${surface} > ${data}
+    shuf -n ${size} ${surface} > ${data} 
+
+    bash ${memorize_these} ${lexc}
+
+    for i in {1..100}; do cat ${memorize} >> ${data}; done
 
     ${partition_data} ${data}
 
@@ -202,8 +211,8 @@ task yaml
     echo "" >> ${yaml}
 
     echo "# GPUs" >> ${yaml}
-    echo "world_size: 7" >> ${yaml}
-    echo "gpu_ranks: [0,1,2,3,4,5,6]" >> ${yaml}
+    echo "world_size: 3" >> ${yaml}
+    echo "gpu_ranks: [0,1,2]" >> ${yaml}
 
     echo "" >> ${yaml}
 
@@ -222,35 +231,27 @@ task yaml
 }
 
 global {
-cuda_devices="1,2,3,4,5,6,7"
+cuda_devices="5,6,7"
 }
 
 
 task train_model
 #    < activate="/home/echen41/venv/bin/activate"
     < yaml=@yaml
-    > model
+    > model="./model.pt"
     > src_vocab="run/vocab.src"
     > tgt_vocab="run/vocab.tgt"
-    :: size=(NumSamples: 1mil=1000000 3mil=3000000)
+    :: size=(NumSamples: 1mil=1000000 3mil=3000000 5mil=5000000)
     :: cuda_devices=@
 {
     # activate the virtual environment
 #    source ${activate}
-
-    START="$(date +%s)"
 
     onmt_build_vocab -config ${yaml} -n_sample ${size}
 
     export CUDA_VISIBLE_DEVICES="${cuda_devices}"
 
     onmt_train -config ${yaml}
-
-    # get runtime
-    END="$(date +%s)"
-
-    DURATION=${END} - ${START}
-    echo ${DURATION}
 
     ln -s run/model* ${model}
 }
@@ -261,7 +262,7 @@ task devtest_predictions
     < src_devtest=@scripts
     > predictions
 {
-    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose
+    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best 3
 }
 
 
@@ -295,12 +296,12 @@ task fst_devtest
 }
 
 
-#plan random_1A_3mil 
-#{
-#    reach train_model via (GetCounts: "random") * (SampleMethod: "1A") * (NumSamples: 10)
-#}
-
-plan fst_devtest_results 
+plan shortest_2A_5mil 
 {
-    reach fst_devtest
+    reach devtest_predictions via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
 }
+
+#plan fst_devtest_results 
+#{
+#    reach fst_devtest
+#}
