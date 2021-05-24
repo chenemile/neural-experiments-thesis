@@ -1,3 +1,16 @@
+# -------------------------------------------------
+# NOTE:
+#   set global variables, i.e. cuda_devices, n_best
+# -------------------------------------------------
+
+global {
+cuda_devices="5,6,7"
+}
+
+global {
+n_best="3"
+}
+
 task digital_corpus
     :: url="git@github.com:SaintLawrenceIslandYupik/digital_corpus.git"
     :: tag=(CorpusVersion: "0.2.0")
@@ -26,10 +39,11 @@ task digital_corpus
 
 task analyzer
     :: url="git@github.com:SaintLawrenceIslandYupik/finite_state_morphology.git"
-    :: tag=(Analyzer: "2.6")
-    > lowercase
+    :: tag=(Analyzer: "2.7")
+    > l2s_ess
+    > uppercase_ess
     > uppercase
-    > full_l2is
+    > l2is
     > lexc="repo/ess.lexc"
 {
     git clone --depth 1                    \
@@ -37,7 +51,7 @@ task analyzer
               -c advice.detachedHead=false \
               --branch ${tag} ${url} repo
 
-    cd repo && make lowercase.fomabin && make uppercase.fomabin && make full_l2is.fomabin
+    cd repo && make l2s_ess.fomabin && make uppercase_ess.fomabin && make uppercase.fomabin && make l2is.fomabin
 
     for f in *.fomabin ; do mv ${f} ../${f%.fomabin} ; done
 }
@@ -58,7 +72,7 @@ task parser
 
 
 task flookup
-    < analyzer=$uppercase@analyzer 
+    < analyzer=$uppercase_ess@analyzer 
     < text=$all@digital_corpus
     > out
 {
@@ -132,7 +146,7 @@ task training_data
     < make_surface=@scripts
     < foma_py=@scripts
     < word2analyses=$out@word2analyses
-    < analyzer=$lowercase@analyzer
+    < analyzer=$l2s_ess@analyzer
     < lexc=@analyzer
     < memorize_these=@scripts
     < partition_data=@scripts
@@ -230,10 +244,6 @@ task yaml
     echo "keep_checkpoint: 1" >> ${yaml}
 }
 
-global {
-cuda_devices="5,6,7"
-}
-
 
 task train_model
 #    < activate="/home/echen41/venv/bin/activate"
@@ -262,7 +272,7 @@ task devtest_predictions
     < src_devtest=@scripts
     > predictions
 {
-    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best 3
+    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
 }
 
 
@@ -281,7 +291,7 @@ task accuracy
 task fst_devtest
     < itemquulteki=@parser
     < l2s=$uppercase@analyzer
-    < l2is=$full_l2is@analyzer
+    < l2is=$l2is@analyzer
     < src_devtest=@scripts 
     < tgt_devtest=@scripts 
     < script=$fst_on_devtest@scripts
@@ -298,7 +308,7 @@ task fst_devtest
 
 plan shortest_2A_5mil 
 {
-    reach devtest_predictions via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
+    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
 }
 
 #plan fst_devtest_results 
