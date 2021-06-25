@@ -20,6 +20,7 @@ task digital_corpus
     > title_index
     > all="everything.txt"
     > stats
+    > devtest_texts="devtest_texts"
 {
     git clone --depth 1                    \
               --single-branch              \
@@ -34,6 +35,46 @@ task digital_corpus
     cat ${titles} ${sentences} > ${all}
 
     wc ${titles} ${sentences} > ${stats}
+
+    # add relevant texts to devtest set
+    #   these are all of the stories where i manually analyzed
+    #   the words the fst couldn't handle
+    mkdir ${devtest_texts}
+    cp data/ess/unleveled_readers/ess_content/* ${devtest_texts}
+    cp data/ess/nagai/ess_content/* ${devtest_texts}
+    cp data/ess/level1.kallagneghet/ess_content/02_ChewingGum.ess_content ${devtest_texts}
+    cp data/ess/level1.kallagneghet/ess_content/04_RavenWolf.ess_content ${devtest_texts}
+    cp data/ess/level1.kallagneghet/ess_content/05_Tufword1.ess_content ${devtest_texts}
+    cp data/ess/level1.kallagneghet/ess_content/09_Tufword2.ess_content ${devtest_texts}
+    cp data/ess/level1.kallagneghet/ess_content/12_Iistumii.ess_content ${devtest_texts}
+    cp data/ess/level2.akiingqwaghneghet/ess_content/01_MountainOutcrop.ess_content ${devtest_texts}
+    cp data/ess/level2.akiingqwaghneghet/ess_content/03_ThoughtfulMan.ess_content ${devtest_texts}
+    cp data/ess/sivuqam_volume2/ess_content/volume2.part4.text6.ess_content ${devtest_texts}
+    cp data/ess/sivuqam_volume2/ess_content/volume2.part4.text6.ess_content ${devtest_texts}
+
+    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_I.ess_content
+    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_II.ess_content
+    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_III.ess_content
+    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_IV.ess_content
+    rm ${devtest_texts}/Ayveghllak.ess_content
+    rm ${devtest_texts}/Kiiluuq.ess_content
+    rm ${devtest_texts}/Meghem_Teghikusii.ess_content
+    rm ${devtest_texts}/Neghqwaaghenka.ess_content
+    rm ${devtest_texts}/Otayahuk_Ungazimi.ess_content
+    rm ${devtest_texts}/Pangeghtellghet.ess_content
+    rm ${devtest_texts}/Pata_Ama_Ilangi.ess_content
+    rm ${devtest_texts}/Patankut.ess_content
+    rm ${devtest_texts}/Piinleghani.ess_content
+    rm ${devtest_texts}/Qateperewaaghmeng_Aatkaqelghii_Yuuk.ess_content
+    rm ${devtest_texts}/Sivuqam_Ungipamsugi.ess_content
+    rm ${devtest_texts}/Teghikusam_Avaqutii.ess_content
+    rm ${devtest_texts}/Teketaatenkuk_Kinunkuk.ess_content
+    rm ${devtest_texts}/The_Adventures_Of_Sulpik.ess_content
+    rm ${devtest_texts}/Ungazighmiit.ess_content
+    rm ${devtest_texts}/Ungazighmiit_Ungipaghaatangit.ess_content
+    rm ${devtest_texts}/Yupigem_Homonym-ngi.ess_content
+    rm ${devtest_texts}/nagai.part1.text1.ess_content
+    rm ${devtest_texts}/nagai.part1.text7.ess_content
 }
 
 
@@ -95,7 +136,7 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.2")
+    :: neurexp_scripts_tag=(Scripts: "0.0.3")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
@@ -109,13 +150,13 @@ task scripts
      > tokenize_char="tokenize_char.sh"
      > get_wer="get_word_error_rate.py"
      > fst_on_devtest="get_fst_on_devtest_results.py"
-     > src_devtest="devtest/src-dev.txt"
-     > tgt_devtest="devtest/tgt-dev.txt"
      > preprocess_analyses="preprocess_analyses.py"
      > cg="yupik.cg3"
+     > devtest_unanalyzed="devtest/unanalyzed.tsv"
+     > make_devtest="make_devtest.py"
 {
     git clone --depth 1                    \
-                --single-branch              \
+              --single-branch              \
               -c advice.detachedHead=false \
               --branch ${neurexp_scripts_tag} ${neurexp_scripts_url} neurexp_scripts
 
@@ -269,8 +310,9 @@ task train_model
 
 task devtest_predictions
     < model=@train_model
-    < src_devtest=@scripts
+    < src_devtest=@devtest
     > predictions
+    :: n_best=@
 {
     onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
 }
@@ -279,12 +321,13 @@ task devtest_predictions
 task accuracy
     < script=$get_wer@scripts
     < analyzer=$uppercase@analyzer 
-    < src_devtest=@scripts
-    < tgt_devtest=@scripts
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
     < predictions=@devtest_predictions
     > output="accuracy.txt"
+    :: n_best=@
 {
-    python2.7 ${script} ${analyzer} ${src_devtest} ${tgt_devtest} ${predictions} > ${output}
+    python2.7 ${script} --fst ${analyzer} --surface_forms ${src_devtest} --gold ${tgt_devtest} --pred ${predictions} --nbest ${n_best} > ${output} 
 }
 
 
@@ -292,8 +335,8 @@ task fst_devtest
     < itemquulteki=@parser
     < l2s=$uppercase@analyzer
     < l2is=$l2is@analyzer
-    < src_devtest=@scripts 
-    < tgt_devtest=@scripts 
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
     < script=$fst_on_devtest@scripts
     > output="results.txt"
 {
@@ -306,12 +349,52 @@ task fst_devtest
 }
 
 
+# make the devtest set
+task devtest
+    < devtest_texts=@digital_corpus
+    < analyzer=$uppercase_ess@analyzer 
+    < cg=$cg@scripts
+    < format_for_cg=$preprocess_analyses@scripts
+    < word2analyses=@scripts
+    < unanalyzed=$devtest_unanalyzed@scripts
+    < make_devtest=@scripts
+    < tokenize_char=@scripts
+    > word2analyses_json="devtest.json"
+    > tsv="devtest.tsv"
+    > src_devtest="src-devtest.txt"
+    > tgt_devtest="tgt-devtest.txt"
+{
+    # run the fst over the devtest texts
+    cat ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} > analyzed
+
+    # format the analyses to cg format
+    python ${format_for_cg} --input_path=analyzed > formatted
+    cat formatted | vislcg3 --grammar ${cg} > analyzed_cg
+
+    # replace +? with the proposed analyses
+    python3 ${word2analyses} --cg_output=analyzed_cg --json_name=${word2analyses_json} --unanalyzed=${unanalyzed} --unanalyzed_cg=unanalyzed_cg
+    
+    python3 ${make_devtest} --json=${word2analyses_json} --output=${tsv}
+
+    # tokenize
+    ${tokenize_char} . 
+
+    mv devtest.surface src-devtest.txt
+    mv devtest.underlying tgt-devtest.txt
+}
+
+
+#plan make_devtest 
+#{
+#    reach devtest
+#}
+
 plan shortest_2A_5mil 
 {
     reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
 }
 
-#plan fst_devtest_results 
-#{
-#    reach fst_devtest
-#}
+plan fst_devtest_results 
+{
+    reach fst_devtest
+}
