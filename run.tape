@@ -389,10 +389,10 @@ task devtest
 #    reach devtest
 #}
 
-plan shortest_2A_5mil 
-{
-    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
-}
+#plan shortest_2A_5mil 
+#{
+#    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
+#}
 
 plan fst_devtest_results 
 {
