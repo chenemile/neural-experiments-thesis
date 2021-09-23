@@ -379,7 +379,7 @@ later perturb or "hallucinate" the erroneous data, such as zero derivation of po
 - [x] run all variations using 3 million training examples -> [lane & bird (2020)](https://aclanthology.org/2020.acl-main.594/). use other settings from their paper as a baseline. rnn. shallow model. whatever else. dropout. see the OpenNMT config.yaml file for architectural settings. what can we achieve by using just the FST?
 
     ###### NOTE
-    accuracy was calculated as (# correct analyses)/(total # analyses). these numbers are subject to change once the devtest set has been updated (there are some errors that need to be fixed in the devtest set and we might validate the entire set)
+    accuracy was calculated as (# correct analyses)/(total # analyses). these numbers need to be updated since there were some errors in the devtest set that have since been fixed (were fixed on 2021-09-22).
 
     get morpheme count method | sample method | date run | accuracy
     --------------------------|---------------|----------|---------
@@ -424,7 +424,7 @@ later perturb or "hallucinate" the erroneous data, such as zero derivation of po
     uniform-frac | 3A  | 70.60
     conditional-frac | 3A  | 70.07
 
-- [x] conducted very cursory error analysis and found that the neural analyzer frequently messed up on closed class items, e.g. particles and demonstratives (they're generally-speaking closed class, with some exceptions). selected the best-performing 5mil system, i.e. shortest-2A-5mil and retrained from scratch a system that would memorize these closed class items. it saw each item something like ten times (in run.tape file) to ensure memorization. this system achieved an accuracy rate of 76.23%
+- [x] conducted very cursory error analysis and found that the neural analyzer frequently messed up on closed class items, e.g. particles and demonstratives (they're generally-speaking closed class, with some exceptions). selected the best-performing 5mil system, i.e. shortest-2A-5mil and retrained from scratch a system that would memorize these closed class items. it saw each item something like ten times (in run.tape file) to ensure memorization. this system achieved an accuracy rate of 76.60% (this was run on the updated devtest set, 2021-09-22)
     
 - [] conduct an in-depth error analysis and identify other patterns in what the neural analyzer is failing on
 
@@ -437,3 +437,5 @@ later perturb or "hallucinate" the erroneous data, such as zero derivation of po
 - [] vary the architecture. try a transformer.
 
 - [] vary the architecture. try a model with additional hidden layers
+
+- [] lower priority, but how can we efficiently validate the devtest set? perform error analysis?
