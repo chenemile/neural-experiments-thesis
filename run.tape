@@ -100,7 +100,7 @@ task analyzer
 
 task parser
      :: url="git@github.com:dowobeha/yupik-parser.git"
-     :: tag=(Qamani: "1.3.19")
+     :: tag=(Qamani: "1.4.0")
      > itemquulteki
 {
     git clone --depth 1                \
@@ -136,7 +136,7 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.4")
+    :: neurexp_scripts_tag=(Scripts: "0.0.5")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
@@ -327,7 +327,7 @@ task accuracy
     > output="accuracy.txt"
     :: n_best=@
 {
-    python2.7 ${script} --fst ${analyzer} --surface_forms ${src_devtest} --gold ${tgt_devtest} --pred ${predictions} --nbest ${n_best} > ${output} 
+    python2.7 ${script} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${output} 
 }
 
 
@@ -340,12 +340,12 @@ task fst_devtest
     < script=$fst_on_devtest@scripts
     > output="results.txt"
 {
-    cat ${src_devtest} | tr -d "[:space:]" > sentences
-    cat ${tgt_devtest} | tr -d "[:space:]" > gold
+    cat ${src_devtest} | tr -d [:blank:] > src_devtest.txt
+    cat ${tgt_devtest} | tr -d [:blank:] > tgt_devtest.txt 
 
-    ${itemquulteki} --l2s=${l2s} --l2is=${l2is} --sentences=${sentences} --mode=all > ${parser_output}
+    ${itemquulteki} --l2s=${l2s} --l2is=${l2is} --sentences="src_devtest.txt" --name="all-features" --output-tsv > analyses.tsv
 
-    python3 ${script} ${parser_output} ${gold} > ${output}
+    python3 ${script} analyses.tsv tgt_devtest.txt > ${output}
 }
 
 
@@ -365,16 +365,16 @@ task devtest
     > tgt_devtest="tgt-devtest.txt"
 {
     # run the fst over the devtest texts
-    cat ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} > analyzed
+    cat ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} > analyzed.tsv
 
     # format the analyses to cg format
-    python ${format_for_cg} --input_path=analyzed > formatted
-    cat formatted | vislcg3 --grammar ${cg} > analyzed_cg
+    python ${format_for_cg} --input_path="analyzed.tsv" > formatted.txt
+    cat "formatted.txt" | vislcg3 --grammar ${cg} > analyzed_cg.txt
 
     # replace +? with the proposed analyses
-    python3 ${word2analyses} --cg_output=analyzed_cg --json_name=${word2analyses_json} --unanalyzed=${unanalyzed} --unanalyzed_cg=unanalyzed_cg
+    python3 ${word2analyses} --cg_output="analyzed_cg.txt" --json_name=${word2analyses_json} --unanalyzed=${unanalyzed} --unanalyzed_cg=unanalyzed_cg
     
-    python3 ${make_devtest} --json=${word2analyses_json} --output=${tsv}
+    python3 ${make_devtest} ${word2analyses_json} --output=${tsv}
 
     # tokenize
     ${tokenize_char} . 
