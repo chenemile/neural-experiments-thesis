@@ -148,8 +148,8 @@ task scripts
      > partition_data="partition_data.sh"
      > sampling_methods="sampling_methods.py"
      > tokenize_char="tokenize_char.sh"
-     > get_wer="get_word_error_rate.py"
-     > fst_on_devtest="get_fst_on_devtest_results.py"
+     > neural_wer="get_neural_wer.py"
+     > fst_wer="get_fst_wer.py"
      > preprocess_analyses="preprocess_analyses.py"
      > cg="yupik.cg3"
      > devtest_unanalyzed="unanalyzed_devtest.tsv"
@@ -319,11 +319,12 @@ task devtest_predictions
 
 
 task accuracy
-    < script=$get_wer@scripts
+    < script=$neural_wer@scripts
     < analyzer=$uppercase@analyzer 
     < src_devtest=@devtest
     < tgt_devtest=@devtest
     < predictions=@devtest_predictions
+    < l2s=$uppercase@analyzer
     > output="accuracy.txt"
     :: n_best=@
 {
@@ -337,15 +338,15 @@ task fst_devtest
     < l2is=$l2is@analyzer
     < src_devtest=@devtest
     < tgt_devtest=@devtest
-    < script=$fst_on_devtest@scripts
+    < script=$fst_wer@scripts
     > output="results.txt"
 {
     cat ${src_devtest} | tr -d [:blank:] > src_devtest.txt
     cat ${tgt_devtest} | tr -d [:blank:] > tgt_devtest.txt 
 
-    ${itemquulteki} --l2s=${l2s} --l2is=${l2is} --sentences="src_devtest.txt" --name="all-features" --output-tsv > analyses.tsv
+    ${itemquulteki} --name="main" --l2s=${l2s} --l2is=${l2is} --sentences="src_devtest.txt" --output-json > analyses.json
 
-    python3 ${script} analyses.tsv tgt_devtest.txt > ${output}
+    python3 ${script} analyses.json tgt_devtest.txt > ${output}
 }
 
 
@@ -384,6 +385,32 @@ task devtest
 }
 
 
+task goldtest_eval
+    < itemquulteki=@parser
+    < l2s=$uppercase@analyzer
+    < l2is=$l2is@analyzer
+    < tokenize_char=@scripts
+    < fst_script=$fst_wer@scripts
+    < neural_script=$neural_wer@scripts
+    < model=@train_model
+    > predictions
+    > output="results.txt"
+    :: n_best=@
+{
+    ${itemquulteki} --name="main" --l2s=${l2s} --l2is=${l2is} --sentences="/home/echen41/neural-experiments-thesis/src_goldtest.txt" --output-json > analyses.json
+
+    python3 ${fst_script} analyses.json "/home/echen41/neural-experiments-thesis/tgt_goldtest.txt" > ${output}
+   
+
+    ${tokenize_char} "/home/echen41/neural-experiments-thesis/goldtest" # TODO: mkdir goldtest
+
+    onmt_translate -model ${model} -src "/home/echen41/neural-experiments-thesis/goldtest/goldtest.surface" -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
+
+    python2.7 ${neural_script} ${l2s} "/home/echen41/neural-experiments-thesis/goldtest/goldtest.surface" ${predictions} "/home/echen41/neural-experiments-thesis/goldtest/goldtest.underlying" ${n_best} >> ${output}
+}
+
+
+
 #plan make_devtest 
 #{
 #    reach devtest
@@ -394,7 +421,13 @@ task devtest
 #    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
 #}
 
-plan fst_devtest_results 
+#plan fst_devtest_results 
+#{
+#    reach fst_devtest
+#}
+
+plan goldtest_eval_results 
 {
-    reach fst_devtest
+    reach goldtest_eval via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
+
 }
