@@ -1,10 +1,21 @@
-# -------------------------------------------------
+# -----------------------------------------
 # NOTE:
-#   set global variables, i.e. cuda_devices, n_best
-# -------------------------------------------------
+#   set global variables, i.e. cuda_devices
+#                              world_size
+#                              gpu_ranks
+#                              n_best
+# -----------------------------------------
 
 global {
-cuda_devices="5,6,7"
+cuda_devices="0,1,2,3,4,5,6,7"
+}
+
+global {
+world_size="8"
+}
+
+global {
+gpu_ranks="[0,1,2,3,4,5,6,7]"
 }
 
 global {
@@ -80,7 +91,7 @@ task digital_corpus
 
 task analyzer
     :: url="git@github.com:SaintLawrenceIslandYupik/finite_state_morphology.git"
-    :: tag=(Analyzer: "2.7")
+    :: tag=(Analyzer: "2.8")
     > l2s_ess
     > uppercase_ess
     > uppercase
@@ -136,13 +147,13 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.5")
+    :: neurexp_scripts_tag=(Scripts: "0.0.7")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
      > count_methods="count_methods.py"
      > memorize_these="memorize_these.sh"
-     > make_surface="make_surface.py"
+     > add_surface="add_surface.py"
      > make_underlying="make_underlying.py"
      > word2analyses="make_word2analyses_json.py"
      > partition_data="partition_data.sh"
@@ -184,7 +195,7 @@ task word2analyses
 
 task training_data
     < make_underlying=@scripts
-    < make_surface=@scripts
+    < add_surface=@scripts
     < foma_py=@scripts
     < word2analyses=$out@word2analyses
     < analyzer=$l2s_ess@analyzer
@@ -194,7 +205,7 @@ task training_data
     < tokenize_char=@scripts
     > underlying="underlying.txt"
     > memorize="memorize.txt"
-    > surface="surface.txt"
+    > has_surface_too="has_surface_too.txt"
     > data="data.txt"
     > src_train="data/src-train.txt"
     > src_val="data/src-val.txt"
@@ -202,13 +213,13 @@ task training_data
     > tgt_val="data/tgt-val.txt"
     :: count_method=(GetCounts: "random" "mixed" "shortest" "uniform_frac" "conditional_frac")
     :: sampling_method=(SampleMethod: "1A" "2A" "2B" "3A")
-    :: size=(NumSamples: 1mil=1000000 3mil=3000000 5mil=5000000)
+    :: size=(NumSamples: 3mil=3000000 5mil=5000000, 10mil=10000000)
 {
     python3 ${make_underlying} --json=${word2analyses} --count_method=${count_method} --sampling_method=${sampling_method} --num_samples=${size} --output=${underlying}
 
-    python2.7 ${make_surface} --underlying=${underlying} --surface=${surface} --analyzer=${analyzer}
+    python2.7 ${add_surface} --underlying=${underlying} --surface=${has_surface_too} --analyzer=${analyzer}
 
-    shuf -n ${size} ${surface} > ${data} 
+    shuf -n ${size} ${has_surface_too} > ${data} 
 
     bash ${memorize_these} ${lexc}
 
@@ -216,12 +227,18 @@ task training_data
 
     ${partition_data} ${data}
 
+    # train on lowercased data
+    sed 's/^[A-Z]/\L&/g' train.tsv > tmp.tsv
+    mv tmp.tsv train.tsv
+    sed 's/^[A-Z]/\L&/g' val.tsv > tmp.tsv
+    mv tmp.tsv val.tsv
+
     mkdir data
-    mv train.tsv val.tsv testset.tsv data
+    mv train.tsv val.tsv data
 
     ${tokenize_char} data
 
-    rm data/train.tsv data/val.tsv data/testset.tsv
+    rm data/train.tsv data/val.tsv
 }
 
 # TODO: task that creates the virtual env and populates it (OpenNMT, PyTorch)
@@ -233,6 +250,8 @@ task yaml
     < tgt_train=@training_data
     < tgt_val=@training_data
     > yaml="config.yaml"
+    :: world_size=@
+    :: gpu_ranks=@
 {
     echo "# neural experiments yaml" > ${yaml}
 
@@ -266,8 +285,8 @@ task yaml
     echo "" >> ${yaml}
 
     echo "# GPUs" >> ${yaml}
-    echo "world_size: 3" >> ${yaml}
-    echo "gpu_ranks: [0,1,2]" >> ${yaml}
+    echo "world_size:" ${world_size} >> ${yaml}
+    echo "gpu_ranks:" ${gpu_ranks} >> ${yaml}
 
     echo "" >> ${yaml}
 
@@ -287,16 +306,16 @@ task yaml
 
 
 task train_model
-#    < activate="/home/echen41/venv/bin/activate"
+    #< activate="/home/echen41/venv/bin/activate"
     < yaml=@yaml
     > model="./model.pt"
     > src_vocab="run/vocab.src"
     > tgt_vocab="run/vocab.tgt"
-    :: size=(NumSamples: 1mil=1000000 3mil=3000000 5mil=5000000)
+    :: size=(NumSamples: 3mil=3000000 5mil=5000000 10mil=10000000)
     :: cuda_devices=@
 {
     # activate the virtual environment
-#    source ${activate}
+    #source ${activate}
 
     onmt_build_vocab -config ${yaml} -n_sample ${size}
 
@@ -305,48 +324,6 @@ task train_model
     onmt_train -config ${yaml}
 
     ln -s run/model* ${model}
-}
-
-
-task devtest_predictions
-    < model=@train_model
-    < src_devtest=@devtest
-    > predictions
-    :: n_best=@
-{
-    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
-}
-
-
-task accuracy
-    < script=$neural_wer@scripts
-    < analyzer=$uppercase@analyzer 
-    < src_devtest=@devtest
-    < tgt_devtest=@devtest
-    < predictions=@devtest_predictions
-    < l2s=$uppercase@analyzer
-    > output="accuracy.txt"
-    :: n_best=@
-{
-    python2.7 ${script} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${output} 
-}
-
-
-task fst_devtest
-    < itemquulteki=@parser
-    < l2s=$uppercase@analyzer
-    < l2is=$l2is@analyzer
-    < src_devtest=@devtest
-    < tgt_devtest=@devtest
-    < script=$fst_wer@scripts
-    > output="results.txt"
-{
-    cat ${src_devtest} | tr -d [:blank:] > src_devtest.txt
-    cat ${tgt_devtest} | tr -d [:blank:] > tgt_devtest.txt 
-
-    ${itemquulteki} --name="main" --l2s=${l2s} --l2is=${l2is} --sentences="src_devtest.txt" --output-json > analyses.json
-
-    python3 ${script} analyses.json tgt_devtest.txt > ${output}
 }
 
 
@@ -385,6 +362,53 @@ task devtest
 }
 
 
+task neural_devtest 
+    < model=@train_model
+    < src_devtest=@devtest
+    > predictions
+    :: n_best=@
+{
+    # model trained on lowercase, so lowercase devtest
+    tr '[:upper:]' '[:lower:]' < ${src_devtest} > lowercased.txt
+
+    onmt_translate -model ${model} -src "lowercased.txt" -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
+}
+
+
+task accuracy
+    < script=$neural_wer@scripts
+    < analyzer=$uppercase@analyzer 
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
+    < predictions=@neural_devtest
+    < l2s=$uppercase@analyzer
+    > output="accuracy.txt"
+    :: n_best=@
+{
+    python2.7 ${script} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${output} 
+
+    #deactivate
+}
+
+
+task fst_devtest
+    < itemquulteki=@parser
+    < l2s=$uppercase@analyzer
+    < l2is=$l2is@analyzer
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
+    < script=$fst_wer@scripts
+    > output="results.txt"
+{
+    cat ${src_devtest} | tr -d [:blank:] > src_devtest.txt
+    cat ${tgt_devtest} | tr -d [:blank:] > tgt_devtest.txt 
+
+    ${itemquulteki} --name="main" --l2s=${l2s} --l2is=${l2is} --sentences="src_devtest.txt" --output-json > analyses.json
+
+    python3 ${script} analyses.json tgt_devtest.txt > ${output}
+}
+
+
 task goldtest_eval
     < itemquulteki=@parser
     < l2s=$uppercase@analyzer
@@ -404,7 +428,9 @@ task goldtest_eval
 
     ${tokenize_char} "/home/echen41/neural-experiments-thesis/goldtest" # TODO: mkdir goldtest
 
-    onmt_translate -model ${model} -src "/home/echen41/neural-experiments-thesis/goldtest/goldtest.surface" -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
+    # lowercase goldtest for neural analyzer
+    tr '[:upper:]' '[:lower:]' < "/home/echen41/neural-experiments-thesis/goldtest/goldtest.surface" > lowercased.txt
+    onmt_translate -model ${model} -src "lowercased.txt" -output ${predictions} -gpu 0 -verbose -n_best ${n_best} 
 
     python2.7 ${neural_script} ${l2s} "/home/echen41/neural-experiments-thesis/goldtest/goldtest.surface" ${predictions} "/home/echen41/neural-experiments-thesis/goldtest/goldtest.underlying" ${n_best} >> ${output}
 }
@@ -416,18 +442,17 @@ task goldtest_eval
 #    reach devtest
 #}
 
-#plan shortest_2A_5mil 
-#{
-#    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
-#}
+plan shortest_2A_10mil 
+{
+    reach accuracy via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 10mil)
+}
 
 #plan fst_devtest_results 
 #{
 #    reach fst_devtest
 #}
 
-plan goldtest_eval_results 
-{
-    reach goldtest_eval via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
-
-}
+#plan goldtest_eval_results 
+#{
+#    reach goldtest_eval via (GetCounts: "shortest") * (SampleMethod: "2A") * (NumSamples: 5mil)
+#}
