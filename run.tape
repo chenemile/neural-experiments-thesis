@@ -180,7 +180,7 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.7")
+    :: neurexp_scripts_tag=(Scripts: "0.0.9")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
