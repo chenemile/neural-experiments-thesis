@@ -30,7 +30,7 @@ n_best="3"
 }
 
 global {
-model_dir="/home/echen41/neural-experiments-thesis/models/10mil-all-variations"
+model_dir="/home/echen41/neural-experiments-thesis/models/prelim"
 }
 
 global {
@@ -71,43 +71,54 @@ task digital_corpus
     # make devtest set and set without devtest
     # (includes all texts where i manually analyzed the words the fst couldn't handle)
     mkdir ${texts_without_devtest}
+    cp data/ess/jacobson_eoc/ess_content/* ${texts_without_devtest}
+    cp data/ess/level1.kallagneghet/ess_content/* ${texts_without_devtest}
+    cp data/ess/level2.akiingqwaghneghet/ess_content/* ${texts_without_devtest}
+    cp data/ess/level3.suluwet/ess_content/* ${texts_without_devtest}
+    cp data/ess/new_testament/* ${texts_without_devtest}
+    cp data/ess/sivuqam_ungipaghaatangi_I/ess_content/* ${texts_without_devtest}
+    cp data/ess/sivuqam_ungipaghaatangi_II/ess_content/* ${texts_without_devtest}
+    cp data/ess/sivuqam_volume1/ess_content/* ${texts_without_devtest}
+    cp data/ess/sivuqam_volume2/ess_content/* ${texts_without_devtest}
+    cp data/ess/sivuqam_volume3/ess_content/* ${texts_without_devtest}
+    cp data/ess/ungipaghaghlanga/ess_content/* ${texts_without_devtest}
 
     mkdir ${devtest_texts}
     cp data/ess/unleveled_readers/ess_content/* ${devtest_texts}
-
     cp data/ess/nagai/ess_content/* ${devtest_texts}
-    cp data/ess/level1.kallagneghet/ess_content/02_ChewingGum.ess_content ${devtest_texts}
-    cp data/ess/level1.kallagneghet/ess_content/04_RavenWolf.ess_content ${devtest_texts}
-    cp data/ess/level1.kallagneghet/ess_content/05_Tufword1.ess_content ${devtest_texts}
-    cp data/ess/level1.kallagneghet/ess_content/09_Tufword2.ess_content ${devtest_texts}
-    cp data/ess/level1.kallagneghet/ess_content/12_Iistumii.ess_content ${devtest_texts}
-    cp data/ess/level2.akiingqwaghneghet/ess_content/01_MountainOutcrop.ess_content ${devtest_texts}
-    cp data/ess/level2.akiingqwaghneghet/ess_content/03_ThoughtfulMan.ess_content ${devtest_texts}
-    cp data/ess/sivuqam_volume2/ess_content/volume2.part4.text6.ess_content ${devtest_texts}
 
-    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_I.ess_content
-    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_II.ess_content
-    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_III.ess_content
-    rm ${devtest_texts}/Ayumiim_Ungipaghaatangi_IV.ess_content
-    rm ${devtest_texts}/Ayveghllak.ess_content
-    rm ${devtest_texts}/Kiiluuq.ess_content
-    rm ${devtest_texts}/Meghem_Teghikusii.ess_content
-    rm ${devtest_texts}/Neghqwaaghenka.ess_content
-    rm ${devtest_texts}/Otayahuk_Ungazimi.ess_content
-    rm ${devtest_texts}/Pangeghtellghet.ess_content
-    rm ${devtest_texts}/Pata_Ama_Ilangi.ess_content
-    rm ${devtest_texts}/Patankut.ess_content
-    rm ${devtest_texts}/Piinleghani.ess_content
-    rm ${devtest_texts}/Qateperewaaghmeng_Aatkaqelghii_Yuuk.ess_content
-    rm ${devtest_texts}/Sivuqam_Ungipamsugi.ess_content
-    rm ${devtest_texts}/Teghikusam_Avaqutii.ess_content
-    rm ${devtest_texts}/Teketaatenkuk_Kinunkuk.ess_content
-    rm ${devtest_texts}/The_Adventures_Of_Sulpik.ess_content
-    rm ${devtest_texts}/Ungazighmiit.ess_content
-    rm ${devtest_texts}/Ungazighmiit_Ungipaghaatangit.ess_content
-    rm ${devtest_texts}/Yupigem_Homonym-ngi.ess_content
-    rm ${devtest_texts}/nagai.part1.text1.ess_content
-    rm ${devtest_texts}/nagai.part1.text7.ess_content
+    mv ${texts_without_devtest}/02_ChewingGum.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/04_RavenWolf.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/05_Tufword1.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/09_Tufword2.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/12_Iistumii.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/01_MountainOutcrop.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/03_ThoughtfulMan.ess_content ${devtest_texts}
+    mv ${texts_without_devtest}/volume2.part4.text6.ess_content ${devtest_texts}
+
+    mv ${devtest_texts}/Ayumiim_Ungipaghaatangi_I.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ayumiim_Ungipaghaatangi_II.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ayumiim_Ungipaghaatangi_III.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ayumiim_Ungipaghaatangi_IV.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ayveghllak.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Kiiluuq.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Meghem_Teghikusii.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Neghqwaaghenka.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Otayahuk_Ungazimi.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Pangeghtellghet.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Pata_Ama_Ilangi.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Patankut.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Piinleghani.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Qateperewaaghmeng_Aatkaqelghii_Yuuk.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Sivuqam_Ungipamsugi.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Teghikusam_Avaqutii.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Teketaatenkuk_Kinunkuk.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/The_Adventures_Of_Sulpik.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ungazighmiit.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Ungazighmiit_Ungipaghaatangit.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/Yupigem_Homonym-ngi.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/nagai.part1.text1.ess_content ${texts_without_devtest}
+    mv ${devtest_texts}/nagai.part1.text7.ess_content ${texts_without_devtest}
 }
 
 
@@ -508,7 +519,7 @@ task eval_goldtest
 task prelim_experiment
     < corpus=$sentences@digital_corpus
     < devtest_texts=@digital_corpus
-    < prelim_texts=@digital_corpus
+    < texts_without_devtest=@digital_corpus
     < analyzer=$uppercase_ess@analyzer
     < cg=$cg@scripts
     < format_for_cg=$preprocess_analyses@scripts
@@ -519,6 +530,10 @@ task prelim_experiment
     < get_wer=$neural_wer@scripts
     < src_devtest=@devtest
     < tgt_devtest=@devtest
+    > src_train="data/src-train.txt"
+    > tgt_train="data/tgt-train.txt"
+    > src_val="data/src-val.txt"
+    > tgt_val="data/tgt-val.txt"
     > model="./model.pt"
     > predictions="devtest_predictions.txt"
     > accuracy="accuracy.txt"
@@ -531,7 +546,8 @@ task prelim_experiment
     # STEP 1: prep training data
     # ---------------------------
     # (a) run the fst over digital corpus
-    cat ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} \; > analyzed.tsv # WHOLE CORPUS
+    cat ${texts_without_devtest}/* ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} \; > analyzed.tsv # whole corpus
+    #cat ${texts_without_devtest}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} \; > analyzed.tsv # corpus minus devtest
 
     # (b) format analyses to cg format and convert to json format
     python ${format_for_cg} --input_path="analyzed.tsv" > formatted.txt
@@ -552,81 +568,188 @@ task prelim_experiment
     ${tokenize_char} data
 
     # cleanup
-#    rm analyzed* formatted.txt prelim.* data/train.tsv data/val.tsv
+    rm analyzed* formatted.txt prelim.* data/train.tsv data/val.tsv
 
     # -------------------------------
     # STEP 2: set up config yaml file
     # -------------------------------
-#    yaml="config.yaml"
-#
-#    echo "# prelim neural experiment yaml" > ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# where the samples will be written" >> ${yaml}
-#    echo "save_data: run" >> ${yaml}
-#    echo "# where the vocab(s) will be written" >> ${yaml}
-#    echo "src_vocab: run/vocab.src" >> ${yaml}
-#    echo "tgt_vocab: run/vocab.tgt" >> ${yaml}
-#    echo "# prevent overwriting existing files" >> ${yaml}
-#    echo "overwrite: False" >> ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# corpus opts:" >> ${yaml}
-#    echo "data:" >> ${yaml}
-#    echo "    corpus_1:" >> ${yaml}
-#    echo "        path_src: data/src-train.txt" >> ${yaml}
-#    echo "        path_tgt: data/tgt-train.txt" >> ${yaml}
-#    echo "    valid:" >> ${yaml}
-#    echo "        path_src: data/src-val.txt" >> ${yaml}
-#    echo "        path_tgt: data/tgt-val.txt" >> ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# vocabulary files that were just created" >> ${yaml}
-#    echo "src_vocab: run/vocab.src" >> ${yaml}
-#    echo "tgt_vocab: run/vocab.tgt" >> ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# GPUs" >> ${yaml}
-#    echo "world_size:" ${world_size} >> ${yaml}
-#    echo "gpu_ranks:" ${gpu_ranks} >> ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# hyperparams" >> ${yaml}
-#    echo "encoder_type: brnn" >> ${yaml}
-#    echo "early_stopping: 5" >> ${yaml}
-#
-#    echo "" >> ${yaml}
-#
-#    echo "# where to save the checkpoints" >> ${yaml}
-#    echo "save_model: run/model" >> ${yaml}
-#    echo "#save_checkpoint_steps: 500" >> ${yaml}
-#    echo "#train_steps: 1000" >> ${yaml}
-#    echo "#valid_steps: 10000" >> ${yaml}
-#    echo "keep_checkpoint: 1" >> ${yaml}
-#
-#    # -------------------
-#    # STEP 2: train model
-#    # -------------------
-#    num_samples=$(wc -l data/src-train.txt)
-#    onmt_build_vocab -config ${yaml} -n_sample ${num_samples}
-#
-#    export CUDA_VISIBLE_DEVICES="${cuda_devices}"
-#
-#    onmt_train -config ${yaml}
-#
-#    ln -s run/model* ${model}
-#
-#    # ---------------------------------
-#    # STEP 3: evaluate model on devtest
-#    # ---------------------------------
-#    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best}
-#
-#    python2.7 ${get_wer} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${accuracy}
+    yaml="config.yaml"
+
+    echo "# prelim neural experiment yaml" > ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# where the samples will be written" >> ${yaml}
+    echo "save_data: run" >> ${yaml}
+    echo "# where the vocab(s) will be written" >> ${yaml}
+    echo "src_vocab: run/vocab.src" >> ${yaml}
+    echo "tgt_vocab: run/vocab.tgt" >> ${yaml}
+    echo "# prevent overwriting existing files" >> ${yaml}
+    echo "overwrite: False" >> ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# corpus opts:" >> ${yaml}
+    echo "data:" >> ${yaml}
+    echo "    corpus_1:" >> ${yaml}
+    echo "        path_src: data/src-train.txt" >> ${yaml}
+    echo "        path_tgt: data/tgt-train.txt" >> ${yaml}
+    echo "    valid:" >> ${yaml}
+    echo "        path_src: data/src-val.txt" >> ${yaml}
+    echo "        path_tgt: data/tgt-val.txt" >> ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# vocabulary files that were just created" >> ${yaml}
+    echo "src_vocab: run/vocab.src" >> ${yaml}
+    echo "tgt_vocab: run/vocab.tgt" >> ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# GPUs" >> ${yaml}
+    echo "world_size:" ${world_size} >> ${yaml}
+    echo "gpu_ranks:" ${gpu_ranks} >> ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# hyperparams" >> ${yaml}
+    echo "encoder_type: brnn" >> ${yaml}
+    echo "early_stopping: 5" >> ${yaml}
+
+    echo "" >> ${yaml}
+
+    echo "# where to save the checkpoints" >> ${yaml}
+    echo "save_model: run/model" >> ${yaml}
+    echo "#save_checkpoint_steps: 500" >> ${yaml}
+    echo "#train_steps: 1000" >> ${yaml}
+    echo "#valid_steps: 10000" >> ${yaml}
+    echo "keep_checkpoint: 1" >> ${yaml}
+
+    # -------------------
+    # STEP 3: train model
+    # -------------------
+    num_samples=$(wc -l data/src-train.txt)
+    onmt_build_vocab -config ${yaml} -n_sample ${num_samples}
+
+    export CUDA_VISIBLE_DEVICES="${cuda_devices}"
+
+    onmt_train -config ${yaml}
+
+    ln -s run/model* ${model}
+
+    # ---------------------------------
+    # STEP 4: evaluate model on devtest
+    # ---------------------------------
+    onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best}
+
+    python2.7 ${get_wer} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${accuracy}
+}
+
+
+task hyperparameter_tuning
+    < src_train=@prelim_experiment
+    < tgt_train=@prelim_experiment
+    < src_val=@prelim_experiment
+    < tgt_val=@prelim_experiment
+    < get_wer=$neural_wer@scripts
+    < analyzer=$uppercase_ess@analyzer
+    > src_devtest="src-devtest.txt"
+    > tgt_devtest="tgt-devtest.txt"
+    :: cuda_devices=@
+    :: world_size=@
+    :: gpu_ranks=@
+    :: n_best=@
+{
+    declare -A small=(["embedding_dim"]=64 ["hidden_dim"]=256 ["num_layers"]=2)
+    declare -A medium=(["embedding_dim"]=128 ["hidden_dim"]=512 ["num_layers"]=3)
+    declare -A large=(["embedding_dim"]=256 ["hidden_dim"]=1024 ["num_layers"]=4)
+
+    learning_rates=(0.1 0.000001) #(0.1 0.01 0.001 0.0001 0.00001 0.000001)
+
+    # -------------------------------
+    # STEP 1: set up config yaml file
+    # -------------------------------
+    for lr in ${learning_rates[@]}; do
+        mkdir small-${lr}
+
+        yaml="config.yaml"
+    
+        echo "# hyperparameter tuning yaml" > ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# where the samples will be written" >> ${yaml}
+        echo "save_data: small-${lr}/run" >> ${yaml}
+        echo "# where the vocab(s) will be written" >> ${yaml}
+        echo "src_vocab: small-${lr}/run/vocab.src" >> ${yaml}
+        echo "tgt_vocab: small-${lr}/run/vocab.tgt" >> ${yaml}
+        echo "# prevent overwriting existing files" >> ${yaml}
+        echo "overwrite: False" >> ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# corpus opts:" >> ${yaml}
+        echo "data:" >> ${yaml}
+        echo "    corpus_1:" >> ${yaml}
+        echo "        path_src: ${src_train}" >> ${yaml}
+        echo "        path_tgt: ${tgt_train}" >> ${yaml}
+        echo "    valid:" >> ${yaml}
+        echo "        path_src: ${src_val}" >> ${yaml}
+        echo "        path_tgt: ${tgt_val}" >> ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# vocabulary files that were just created" >> ${yaml}
+        echo "src_vocab: small-${lr}/run/vocab.src" >> ${yaml}
+        echo "tgt_vocab: small-${lr}/run/vocab.tgt" >> ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# GPUs" >> ${yaml}
+        echo "world_size:" ${world_size} >> ${yaml}
+        echo "gpu_ranks:" ${gpu_ranks} >> ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# hyperparams" >> ${yaml}
+        echo "encoder_type: brnn" >> ${yaml}
+        echo "word_vec_size: ${small[embedding_dim]}" >> ${yaml}
+        echo "rnn_size: ${small[hidden_dim]}" >> ${yaml}
+        echo "layers: ${small[num_layers]}" >> ${yaml}
+        echo "early_stopping: 5" >> ${yaml}
+
+        echo "" >> ${yaml}
+
+        echo "learning_rate: ${lr}" >> ${yaml}
+    
+        echo "" >> ${yaml}
+    
+        echo "# where to save the checkpoints" >> ${yaml}
+        echo "save_model: small-${lr}/run/model" >> ${yaml}
+        echo "#save_checkpoint_steps: 500" >> ${yaml}
+        echo "#train_steps: 1000" >> ${yaml}
+        echo "#valid_steps: 10000" >> ${yaml}
+        echo "keep_checkpoint: 1" >> ${yaml}
+    
+        # -------------------
+        # STEP 3: train model
+        # -------------------
+        num_samples=$(wc -l ${src_train})
+        onmt_build_vocab -config ${yaml} -n_sample ${num_samples}
+    
+        export CUDA_VISIBLE_DEVICES="${cuda_devices}"
+    
+        onmt_train -config ${yaml}
+    
+        ln -s run/model* ./model.pt 
+    
+        # ---------------------------------
+        # STEP 4: evaluate model on devtest
+        # ---------------------------------
+        onmt_translate -model ./model.pt -src ${src_devtest} -output small-${lr}_devtest_predictions.txt -gpu 0 -verbose -n_best ${n_best}
+    
+        python2.7 ${get_wer} ${analyzer} ${src_devtest} small-${lr}_devtest_predictions.txt ${tgt_devtest} ${n_best} > small-${lr}_accuracy.txt
+    done
 }
 
 
@@ -635,10 +758,10 @@ task prelim_experiment
 #    reach devtest
 #}
 
-plan run_prelim_experiment 
-{
-    reach prelim_experiment
-}
+#plan run_prelim_experiment 
+#{
+#    reach prelim_experiment
+#}
 
 #plan neural_analyzer 
 #{
@@ -659,3 +782,8 @@ plan run_prelim_experiment
 #{
 #    reach eval_goldtest
 #}
+
+plan tune_hyperparameters 
+{
+    reach hyperparameter_tuning
+}
