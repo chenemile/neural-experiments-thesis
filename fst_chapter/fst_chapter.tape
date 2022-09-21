@@ -27,8 +27,9 @@ task analyzer2020
 
 task analyzer2018 
     :: url="git@github.com:dowobeha/foma.ess.git"
-    :: tag=(Analyzer2018: "1.0")
+    :: tag=(Analyzer2018: "1.1")
     > l2s="ess.fomabin"
+    > l2is="ess.lex.fomabin"
     > lexc="repo/ess.lexc"
 {
     git clone --depth 1                    \
@@ -80,10 +81,11 @@ task eval_goldtest
     < l2s_2020=$uppercase@analyzer2020
     < l2is_2020=$l2is@analyzer2020
     < l2s_2018=$l2s@analyzer2018
+    < l2is_2018=$l2is@analyzer2018
     < tokenize_char=@scripts
     < fst_script=$fst_wer@scripts
     > results_2020="2020_results/2020_accuracy.txt"
-#    > results_2018="2018_results/2018_accuracy.txt"
+    > results_2018="2018_results/2018_accuracy.txt"
     :: src_goldtest=@
     :: tgt_goldtest=@
 {
@@ -112,9 +114,11 @@ task eval_goldtest
     # -------------
     mkdir 2018_results
 
-    
+    ${itemquulteki} --name="main" --l2s=${l2s_2018} --l2is=${l2is_2018} --sentences=${src_goldtest} --output-json > analyses.json
 
-    #mv analyses.json 2020_results/2020_predictions.json
+    python3 ${fst_script} analyses.json ${tgt_goldtest} > ${results_2018}
+
+    mv analyses.json 2018_results/2018_predictions.json
 }
 
 
