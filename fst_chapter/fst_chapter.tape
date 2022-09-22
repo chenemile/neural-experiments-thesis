@@ -60,7 +60,7 @@ task parser
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.9")
+    :: neurexp_scripts_tag=(Scripts: "0.0.10")
      > foma_py="foma.py"
      > tokenize_char="tokenize_char.sh"
      > fst_wer="get_fst_wer.py"
