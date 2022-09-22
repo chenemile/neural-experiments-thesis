@@ -103,9 +103,17 @@ task eval_goldtest
     # -------------
     mkdir 2020_results
 
+    start="$(date +%s)"
     ${itemquulteki} --name="main" --l2s=${l2s_2020} --l2is=${l2is_2020} --sentences=${src_goldtest} --output-json > analyses.json
+    end="$(date +%s)"
 
     python3 ${fst_script} analyses.json ${tgt_goldtest} > ${results_2020}
+
+    duration=$((${end} - ${start}))
+    echo "----------------------------" >> ${results_2020}
+    echo "runtime (over full goldtest)" >> ${results_2020}
+    echo "----------------------------" >> ${results_2020}
+    echo "runtime = ${duration} seconds" >> ${results_2020}
 
     mv analyses.json 2020_results/2020_predictions.json
 
@@ -114,9 +122,17 @@ task eval_goldtest
     # -------------
     mkdir 2018_results
 
+    start="$(date +%s)"
     ${itemquulteki} --name="main" --l2s=${l2s_2018} --l2is=${l2is_2018} --sentences=${src_goldtest} --output-json > analyses.json
+    end="$(date +%s)"
 
     python3 ${fst_script} analyses.json ${tgt_goldtest} > ${results_2018}
+
+    duration=$((${end} - ${start}))
+    echo "----------------------------" >> ${results_2018}
+    echo "runtime (over full goldtest)" >> ${results_2018}
+    echo "----------------------------" >> ${results_2018}
+    echo "runtime = ${duration} seconds" >> ${results_2018}
 
     mv analyses.json 2018_results/2018_predictions.json
 }
