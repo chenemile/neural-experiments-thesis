@@ -1,4 +1,4 @@
-# TODO:
+#TODO:
 #  - how to branch prelim_experiment task?
 #  - make goldtest set
 #  - task that creates the virtual env and populates it (OpenNMT, PyTorch)
@@ -26,11 +26,11 @@ gpu_ranks="[0,1,2,3,4,5,6,7]"
 }
 
 global {
-n_best="3"
+n_best="1"
 }
 
 global {
-model_dir="/home/echen41/neural-experiments-thesis/models/prelim"
+model_dir="/home/echen41/neural-experiments-thesis/3mil-all-variations"
 }
 
 global {
@@ -39,6 +39,10 @@ src_goldtest="/home/echen41/neural-experiments-thesis/goldtest/src-goldtest.txt"
 
 global {
 tgt_goldtest="/home/echen41/neural-experiments-thesis/goldtest/tgt-goldtest.txt"
+}
+
+global {
+logreg="/home/echen41/neural-experiments-thesis/logistic_regression.csv"
 }
 
 
@@ -61,12 +65,38 @@ task digital_corpus
 
     find data/ess -name "*.ess_titlepage" > ${title_index}
     find data/ess -name "*.ess_content"   > ${sentence_index}
+    find data/ess -name "*.ess" >> ${sentence_index}
 
     cat ${title_index}    | xargs cat | grep -v '^\s*$' > ${titles}
     cat ${sentence_index} | xargs cat | grep -v '^\s*$' > ${sentences}
     cat ${titles} ${sentences} > ${all}
 
-    wc ${titles} ${sentences} > ${stats}
+    # remove punctuation, numbers; trim spaces
+    sed -i -e 's/[[:punct:]]//g' -e 's/[0-9]//g' -e 's/^ *//g' ${titles}
+    sed -i -e 's/[[:punct:]]//g' -e 's/[0-9]//g' -e 's/^ *//g' ${sentences}
+
+    title_token_count=$(wc -w < ${titles})
+    sent_token_count=$(wc -w < ${sentences})
+
+    title_sent_count=$(wc -l < ${titles})
+    sent_sent_count=$(wc -l < ${sentences})
+
+    title_type_count=$(cat ${titles} | tr -s ' ' '\n' | tr '[:upper:]' '[:lower:]' | sort | uniq | wc -l)
+    sent_type_count=$(cat ${sentences} | tr -s ' ' '\n' | tr '[:upper:]' '[:lower:]' | sort | uniq | wc -l)
+
+    echo 'num tokens in titles: ' ${title_token_count} > ${stats}
+    echo 'num tokens in sents:  ' ${sent_token_count} >> ${stats}
+    echo 'total tokens:         ' $((${title_token_count} + ${sent_token_count})) >> ${stats}
+
+    echo '' >> ${stats}
+
+    echo 'num types in titles: ' ${title_type_count} >> ${stats}
+    echo 'num types in sents:  ' ${sent_type_count} >> ${stats}
+    echo 'total types:         ' $((${title_type_count} + ${sent_type_count})) >> ${stats}
+
+    echo '' >> ${stats}
+
+    echo 'total num sentences: ' $((${title_sent_count} + ${sent_sent_count})) >> ${stats}
 
     # make devtest set and set without devtest
     # (includes all texts where i manually analyzed the words the fst couldn't handle)
@@ -180,7 +210,7 @@ task run_cg
 task scripts
     :: foma_url="https://raw.githubusercontent.com/mhulden/foma/master/foma/python/foma.py"
     :: neurexp_scripts_url="git@github.com:chenemile/neurexp-scripts-and-devtest.git"
-    :: neurexp_scripts_tag=(Scripts: "0.0.9")
+    :: neurexp_scripts_tag=(Scripts: "0.1.2")
     :: cg_url="git@github.com:hayleypark/yupik_constraint_grammar.git"
     :: cg_tag=(CG: "0.0.1")
      > foma_py="foma.py"
@@ -364,54 +394,55 @@ task devtest
     < unanalyzed=$devtest_unanalyzed@scripts
     < make_devtest=@scripts
     < tokenize_char=@scripts
-    > word2analyses_json="devtest.json"
-    > tsv="devtest.tsv"
     > src_devtest="src-devtest.txt"
     > tgt_devtest="tgt-devtest.txt"
 {
     # (1) run the fst over the devtest texts
     cat ${devtest_texts}/* | tr ' ' '\n' | grep -v '^[\n\t\s]*$' | flookup ${analyzer} > analyzed.tsv
 
-    # (2) format analyses to cg format
+# (2) format analyses to cg format
     python ${format_for_cg} --input_path="analyzed.tsv" > formatted.txt
     cat "formatted.txt" | vislcg3 --grammar ${cg} > analyzed_cg.txt
 
     # (3) replace +? with manually proposed analyses
-    python3 ${word2analyses} --cg_output="analyzed_cg.txt" --json_name=${word2analyses_json} --unanalyzed=${unanalyzed} --unanalyzed_cg=unanalyzed_cg
+    python3 ${word2analyses} --cg_output="analyzed_cg.txt" --json_name="word2analyses.json" --unanalyzed=${unanalyzed} --unanalyzed_cg=unanalyzed_cg
 
     # (4) make devtest tsv
-    python3 ${make_devtest} ${word2analyses_json} --output=${tsv}
+    python3 ${make_devtest} word2analyses.json --output="devtest.tsv"
+    sed -i '/^+?/d' devtest.tsv
+    sed -i '/.*?.*/d' devtest.tsv
 
-    # (5) lowercase devtest tsv
-    sed -i 's/^[A-Z]/\L&/g' ${tsv}
+    # (5) initial cleanup (so tokenize.sh doesn't also tokenize cg output)
+    #rm analyzed* *.json formatted.txt unanalyzed_cg
 
-    # (6) initial cleanup (so tokenize.sh doesn't also tokenize cg output)
-    rm analyzed* devtest.json formatted.txt unanalyzed_cg
-
-    # (7) tokenize devtest tsv
+    # (6) tokenize devtest tsv
     ${tokenize_char} .
 
-    # (8) cleanup
-    rm devtest.tsv
+    # (7) cleanup
+    #rm devtest.tsv
 
     mv devtest.surface src-devtest.txt
+    sed -i 's/[A-Z]/\L&/g' src-devtest.txt 
+
     mv devtest.underlying tgt-devtest.txt
+    sed -i 's/^[A-Z]/\L&/g' tgt-devtest.txt 
 }
 
 
 task neural_devtest_accuracy
     < model=@train_model
-    < script=$neural_wer@scripts
+    < neural_wer=@scripts
     < analyzer=$uppercase@analyzer
     < src_devtest=@devtest
     < tgt_devtest=@devtest
     > predictions="devtest_predictions.txt"
     > accuracy="accuracy.txt"
     :: n_best=@
+    :: logreg=@
 {
     onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best}
 
-    python2.7 ${script} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${accuracy}
+    python2.7 ${neural_wer} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} ${logreg} > ${accuracy}
 
     deactivate
 }
@@ -436,27 +467,28 @@ task fst_devtest_accuracy
 
 
 task prev_neural_devtest
-    < script=$neural_wer@scripts
+    < neural_wer=@scripts
     < analyzer=$uppercase@analyzer
     < src_devtest=@devtest
     < tgt_devtest=@devtest
     > results="results"
     :: model_dir=@
     :: n_best=@
+    :: logreg=@
 {
     mkdir results
 
     for dirname in ${model_dir}/*; do
         onmt_translate -model "${dirname}/model.pt" -src ${src_devtest} -output "${dirname}_predictions.txt" -gpu 0 -verbose -n_best ${n_best}
 
-        python2.7 ${script} ${analyzer} ${src_devtest} "${dirname}_predictions.txt" ${tgt_devtest} ${n_best} > "${dirname}_accuracy.txt"
+        python2.7 ${neural_wer} ${analyzer} ${src_devtest} "${dirname}_predictions.txt" ${tgt_devtest} ${n_best} ${logreg} > "${dirname}_accuracy.txt"
 
         mv "${dirname}_predictions.txt" ${results}
         mv "${dirname}_accuracy.txt" ${results}
 
     done
 
-    rm manual_error_analysis.csv
+    #rm manual_error_analysis.csv
 }
 
 
@@ -465,14 +497,15 @@ task eval_goldtest
     < l2s=$uppercase@analyzer
     < l2is=$l2is@analyzer
     < tokenize_char=@scripts
-    < fst_script=$fst_wer@scripts
-    < neural_script=$neural_wer@scripts
+    < fst_wer=@scripts
+    < neural_wer=@scripts
     > neural_results="neural_results"
     > fst_results="fst_results/fst_accuracy.txt"
-    :: n_best=@
-    :: model_dir=@
     :: src_goldtest=@
     :: tgt_goldtest=@
+    :: n_best=@
+    :: model_dir=@
+    :: logreg=@
 {
     # -----------------
     # make goldtest set 
@@ -490,7 +523,7 @@ task eval_goldtest
 
     ${itemquulteki} --name="main" --l2s=${l2s} --l2is=${l2is} --sentences=${src_goldtest} --output-json > analyses.json
 
-    python3 ${fst_script} analyses.json ${tgt_goldtest} > ${fst_results}
+    python3 ${fst_wer} analyses.json ${tgt_goldtest} > ${fst_results}
 
     mv analyses.json fst_results/fst_predictions.json
 
@@ -505,7 +538,7 @@ task eval_goldtest
     for dirname in ${model_dir}/*; do
         onmt_translate -model "${dirname}/model.pt" -src goldtest.surface -output "${dirname}_predictions.txt" -gpu 0 -verbose -n_best ${n_best}
 
-        python2.7 ${neural_script} ${l2s} goldtest.surface "${dirname}_predictions.txt" goldtest.underlying ${n_best} >> "${dirname}_accuracy.txt"
+        python2.7 ${neural_wer} ${l2s} goldtest.surface "${dirname}_predictions.txt" goldtest.underlying ${n_best} ${logreg} >> "${dirname}_accuracy.txt"
 
         mv "${dirname}_predictions.txt" ${neural_results}
         mv "${dirname}_accuracy.txt" ${neural_results}
@@ -517,7 +550,6 @@ task eval_goldtest
 
 
 task prelim_experiment
-    < corpus=$sentences@digital_corpus
     < devtest_texts=@digital_corpus
     < texts_without_devtest=@digital_corpus
     < analyzer=$uppercase_ess@analyzer
@@ -527,7 +559,7 @@ task prelim_experiment
     < make_devtest=@scripts
     < tokenize_char=@scripts
     < partition_data=@scripts
-    < get_wer=$neural_wer@scripts
+    < neural_wer=@scripts
     < src_devtest=@devtest
     < tgt_devtest=@devtest
     > src_train="data/src-train.txt"
@@ -541,6 +573,7 @@ task prelim_experiment
     :: gpu_ranks=@
     :: cuda_devices=@
     :: n_best=@
+    :: logreg=@
 {
     # ---------------------------
     # STEP 1: prep training data
@@ -642,7 +675,7 @@ task prelim_experiment
     # ---------------------------------
     onmt_translate -model ${model} -src ${src_devtest} -output ${predictions} -gpu 0 -verbose -n_best ${n_best}
 
-    python2.7 ${get_wer} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} > ${accuracy}
+    python2.7 ${neural_wer} ${analyzer} ${src_devtest} ${predictions} ${tgt_devtest} ${n_best} ${logreg} > ${accuracy}
 }
 
 
@@ -651,26 +684,27 @@ task hyperparameter_tuning
     < tgt_train=@prelim_experiment
     < src_val=@prelim_experiment
     < tgt_val=@prelim_experiment
-    < get_wer=$neural_wer@scripts
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
+    < neural_wer=@scripts
     < analyzer=$uppercase_ess@analyzer
-    > src_devtest="src-devtest.txt"
-    > tgt_devtest="tgt-devtest.txt"
     :: cuda_devices=@
     :: world_size=@
     :: gpu_ranks=@
     :: n_best=@
+    :: logreg=@
 {
     declare -A small=(["embedding_dim"]=64 ["hidden_dim"]=256 ["num_layers"]=2)
     declare -A medium=(["embedding_dim"]=128 ["hidden_dim"]=512 ["num_layers"]=3)
     declare -A large=(["embedding_dim"]=256 ["hidden_dim"]=1024 ["num_layers"]=4)
 
-    learning_rates=(0.1 0.000001) #(0.1 0.01 0.001 0.0001 0.00001 0.000001)
+    learning_rates=(0.1)
 
     # -------------------------------
     # STEP 1: set up config yaml file
     # -------------------------------
     for lr in ${learning_rates[@]}; do
-        mkdir small-${lr}
+        mkdir large-${lr}
 
         yaml="config.yaml"
     
@@ -679,10 +713,10 @@ task hyperparameter_tuning
         echo "" >> ${yaml}
     
         echo "# where the samples will be written" >> ${yaml}
-        echo "save_data: small-${lr}/run" >> ${yaml}
+        echo "save_data: large-${lr}/run" >> ${yaml}
         echo "# where the vocab(s) will be written" >> ${yaml}
-        echo "src_vocab: small-${lr}/run/vocab.src" >> ${yaml}
-        echo "tgt_vocab: small-${lr}/run/vocab.tgt" >> ${yaml}
+        echo "src_vocab: large-${lr}/run/vocab.src" >> ${yaml}
+        echo "tgt_vocab: large-${lr}/run/vocab.tgt" >> ${yaml}
         echo "# prevent overwriting existing files" >> ${yaml}
         echo "overwrite: False" >> ${yaml}
     
@@ -700,8 +734,8 @@ task hyperparameter_tuning
         echo "" >> ${yaml}
     
         echo "# vocabulary files that were just created" >> ${yaml}
-        echo "src_vocab: small-${lr}/run/vocab.src" >> ${yaml}
-        echo "tgt_vocab: small-${lr}/run/vocab.tgt" >> ${yaml}
+        echo "src_vocab: large-${lr}/run/vocab.src" >> ${yaml}
+        echo "tgt_vocab: large-${lr}/run/vocab.tgt" >> ${yaml}
     
         echo "" >> ${yaml}
     
@@ -713,9 +747,9 @@ task hyperparameter_tuning
     
         echo "# hyperparams" >> ${yaml}
         echo "encoder_type: brnn" >> ${yaml}
-        echo "word_vec_size: ${small[embedding_dim]}" >> ${yaml}
-        echo "rnn_size: ${small[hidden_dim]}" >> ${yaml}
-        echo "layers: ${small[num_layers]}" >> ${yaml}
+        echo "word_vec_size: ${large[embedding_dim]}" >> ${yaml}
+        echo "rnn_size: ${large[hidden_dim]}" >> ${yaml}
+        echo "layers: ${large[num_layers]}" >> ${yaml}
         echo "early_stopping: 5" >> ${yaml}
 
         echo "" >> ${yaml}
@@ -725,7 +759,7 @@ task hyperparameter_tuning
         echo "" >> ${yaml}
     
         echo "# where to save the checkpoints" >> ${yaml}
-        echo "save_model: small-${lr}/run/model" >> ${yaml}
+        echo "save_model: large-${lr}/run/model" >> ${yaml}
         echo "#save_checkpoint_steps: 500" >> ${yaml}
         echo "#train_steps: 1000" >> ${yaml}
         echo "#valid_steps: 10000" >> ${yaml}
@@ -740,18 +774,30 @@ task hyperparameter_tuning
         export CUDA_VISIBLE_DEVICES="${cuda_devices}"
     
         onmt_train -config ${yaml}
-    
-        ln -s run/model* ./model.pt 
-    
-        # ---------------------------------
-        # STEP 4: evaluate model on devtest
-        # ---------------------------------
-        onmt_translate -model ./model.pt -src ${src_devtest} -output small-${lr}_devtest_predictions.txt -gpu 0 -verbose -n_best ${n_best}
-    
-        python2.7 ${get_wer} ${analyzer} ${src_devtest} small-${lr}_devtest_predictions.txt ${tgt_devtest} ${n_best} > small-${lr}_accuracy.txt
+
+        # ----------------------
+        # STEP 4: evaluate model 
+        # ----------------------
+        onmt_translate -model large-${lr}/run/model* -src ${src_devtest} -output large-${lr}_devtest_predictions.txt -gpu 0 -verbose -n_best ${n_best}
+
+        python2.7 ${neural_wer} ${analyzer} ${src_devtest} large-${lr}_devtest_predictions.txt ${tgt_devtest} ${n_best} ${logreg} > large-${lr}_accuracy.txt
     done
 }
 
+task eval_hyperparameter_tuning
+    < src_devtest=@devtest
+    < tgt_devtest=@devtest
+    < get_wer=$neural_wer@scripts
+    < analyzer=$uppercase_ess@analyzer
+    :: n_best=@
+    :: logreg=@
+{
+   for dirname in /home/echen41/neural-experiments-thesis/tuning/*; do
+       onmt_translate -model ${dirname}/run/model* -src ${src_devtest} -output ${dirname}_devtest_predictions.txt -gpu 0 -verbose -n_best ${n_best}
+    
+       python2.7 ${get_wer} ${analyzer} ${src_devtest} ${dirname}_devtest_predictions.txt ${tgt_devtest} ${n_best} ${logreg} > ${dirname}_accuracy.txt
+   done
+}
 
 #plan make_devtest 
 #{
@@ -778,12 +824,17 @@ task hyperparameter_tuning
 #    reach prev_neural_devtest
 #}
 
-#plan goldtest_eval_results 
+plan goldtest_eval_results 
+{
+    reach eval_goldtest
+}
+
+#plan tune_hyperparameters 
 #{
-#    reach eval_goldtest
+#    reach hyperparameter_tuning
 #}
 
-plan tune_hyperparameters 
-{
-    reach hyperparameter_tuning
-}
+#plan delete 
+#{
+#    reach eval_hyperparameter_tuning
+#}
